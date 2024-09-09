@@ -1,3 +1,5 @@
+This is a fork from langgenius/dify. 
+
 Dify is an open-source LLM app development platform. Its intuitive interface combines AI workflow, RAG pipeline, agent capabilities, model management, observability features and more, letting you quickly go from prototype to production. Here's a list of the core features:
 </br> </br>
 
@@ -136,7 +138,6 @@ Embedding模型采用BGE-M3. 支持超过100种语言的语义表示及检索任
 Click the user icon > Setting > Model Provider > Config Ollama. The base URL should be `http://host.docker.internal:11434`.  
 
 `host.docker.internal` exists only in Windows WSL, because Docker Desktop for Windows runs the Docker daemon inside the special WSL VM Docker-Desktop. It has its own localhost and its own WSL2 interface to communicate with Windows. This VM doesn’t have any static IP address. The IP address is generated every time when VM is created and passed via host.docker.internal in the generated hosts file to every distribution. 
-
 
 ## Next steps
 
