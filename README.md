@@ -1,47 +1,3 @@
-![cover-v5-optimized](https://github.com/langgenius/dify/assets/13230914/f9e19af5-61ba-4119-b926-d10c4c06ebab)
-
-<p align="center">
-  <a href="https://cloud.dify.ai">Dify Cloud</a> ·
-  <a href="https://docs.dify.ai/getting-started/install-self-hosted">Self-hosting</a> ·
-  <a href="https://docs.dify.ai">Documentation</a> ·
-  <a href="https://udify.app/chat/22L1zSxg6yW1cWQg">Enterprise inquiry</a>
-</p>
-
-<p align="center">
-    <a href="https://dify.ai" target="_blank">
-        <img alt="Static Badge" src="https://img.shields.io/badge/Product-F04438"></a>
-    <a href="https://dify.ai/pricing" target="_blank">
-        <img alt="Static Badge" src="https://img.shields.io/badge/free-pricing?logo=free&color=%20%23155EEF&label=pricing&labelColor=%20%23528bff"></a>
-    <a href="https://discord.gg/FngNHpbcY7" target="_blank">
-        <img src="https://img.shields.io/discord/1082486657678311454?logo=discord&labelColor=%20%235462eb&logoColor=%20%23f5f5f5&color=%20%235462eb"
-            alt="chat on Discord"></a>
-    <a href="https://twitter.com/intent/follow?screen_name=dify_ai" target="_blank">
-        <img src="https://img.shields.io/twitter/follow/dify_ai?logo=X&color=%20%23f5f5f5"
-            alt="follow on Twitter"></a>
-    <a href="https://hub.docker.com/u/langgenius" target="_blank">
-        <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/langgenius/dify-web?labelColor=%20%23FDB062&color=%20%23f79009"></a>
-    <a href="https://github.com/langgenius/dify/graphs/commit-activity" target="_blank">
-        <img alt="Commits last month" src="https://img.shields.io/github/commit-activity/m/langgenius/dify?labelColor=%20%2332b583&color=%20%2312b76a"></a>
-    <a href="https://github.com/langgenius/dify/" target="_blank">
-        <img alt="Issues closed" src="https://img.shields.io/github/issues-search?query=repo%3Alanggenius%2Fdify%20is%3Aclosed&label=issues%20closed&labelColor=%20%237d89b0&color=%20%235d6b98"></a>
-    <a href="https://github.com/langgenius/dify/discussions/" target="_blank">
-        <img alt="Discussion posts" src="https://img.shields.io/github/discussions/langgenius/dify?labelColor=%20%239b8afb&color=%20%237a5af8"></a>
-</p>
-
-<p align="center">
-  <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-d9d9d9"></a>
-  <a href="./README_CN.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-d9d9d9"></a>
-  <a href="./README_JA.md"><img alt="日本語のREADME" src="https://img.shields.io/badge/日本語-d9d9d9"></a>
-  <a href="./README_ES.md"><img alt="README en Español" src="https://img.shields.io/badge/Español-d9d9d9"></a>
-  <a href="./README_FR.md"><img alt="README en Français" src="https://img.shields.io/badge/Français-d9d9d9"></a>
-  <a href="./README_KL.md"><img alt="README tlhIngan Hol" src="https://img.shields.io/badge/Klingon-d9d9d9"></a>
-  <a href="./README_KR.md"><img alt="README in Korean" src="https://img.shields.io/badge/한국어-d9d9d9"></a>
-  <a href="./README_AR.md"><img alt="README بالعربية" src="https://img.shields.io/badge/العربية-d9d9d9"></a>
-  <a href="./README_TR.md"><img alt="Türkçe README" src="https://img.shields.io/badge/Türkçe-d9d9d9"></a>
-  <a href="./README_VI.md"><img alt="README Tiếng Việt" src="https://img.shields.io/badge/Ti%E1%BA%BFng%20Vi%E1%BB%87t-d9d9d9"></a>
-</p>
-
-
 Dify is an open-source LLM app development platform. Its intuitive interface combines AI workflow, RAG pipeline, agent capabilities, model management, observability features and more, letting you quickly go from prototype to production. Here's a list of the core features:
 </br> </br>
 
@@ -142,29 +98,10 @@ Dify is an open-source LLM app development platform. Its intuitive interface com
   </tr>
 </table>
 
-## Using Dify
+# Quick start
 
-- **Cloud </br>**
-We host a [Dify Cloud](https://dify.ai) service for anyone to try with zero setup. It provides all the capabilities of the self-deployed version, and includes 200 free GPT-4 calls in the sandbox plan.
+## Docker compose
 
-- **Self-hosting Dify Community Edition</br>**
-Quickly get Dify running in your environment with this [starter guide](#quick-start).
-Use our [documentation](https://docs.dify.ai) for further references and more in-depth instructions.
-
-- **Dify for enterprise / organizations</br>**
-We provide additional enterprise-centric features. [Log your questions for us through this chatbot](https://udify.app/chat/22L1zSxg6yW1cWQg) or [send us an email](mailto:business@dify.ai?subject=[GitHub]Business%20License%20Inquiry) to discuss enterprise needs. </br>
-  > For startups and small businesses using AWS, check out [Dify Premium on AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-t22mebxzwjhu6) and deploy it to your own AWS VPC with one-click. It's an affordable AMI offering with the option to create apps with custom logo and branding.
-
-
-## Staying ahead
-
-Star Dify on GitHub and be instantly notified of new releases.
-
-![star-us](https://github.com/langgenius/dify/assets/13230914/b823edc1-6388-4e25-ad45-2f6b187adbb4)
-
-
-
-## Quick start
 > Before installing Dify, make sure your machine meets the following minimum system requirements:
 > 
 >- CPU >= 2 Core
@@ -182,7 +119,24 @@ docker compose up -d
 
 After running, you can access the Dify dashboard in your browser at [http://localhost/install](http://localhost/install) and start the initialization process.
 
-> If you'd like to contribute to Dify or do additional development, refer to our [guide to deploying from source code](https://docs.dify.ai/getting-started/install-self-hosted/local-source-code)
+## Ollama
+
+Install ollama and download the models.
+
+```
+ollama run mistral-nemo
+ollama run bge-m3
+```
+
+LLM模型采用 Mistral NeMo Instruct Model. A 12B model with 128k context length, built by Mistral AI and NVIDIA.
+![alt text](mistral-nemo-multilingual-1.png)
+
+Embedding模型采用BGE-M3. 支持超过100种语言的语义表示及检索任务，多语言、跨语言能力全面领先（Multi-Lingual）;BGE-M3最高支持8192长度的输入文本，高效实现句子、段落、篇章、文档等不同粒度的检索任务（Multi-Granularity）;BGE-M3同时集成了稠密检索、稀疏检索、多向量检索三大能力，一站式支撑不同语义检索场景（Multi-Functionality）
+
+Click the user icon > Setting > Model Provider > Config Ollama. The base URL should be `http://host.docker.internal:11434`.  
+
+`host.docker.internal` exists only in Windows WSL, because Docker Desktop for Windows runs the Docker daemon inside the special WSL VM Docker-Desktop. It has its own localhost and its own WSL2 interface to communicate with Windows. This VM doesn’t have any static IP address. The IP address is generated every time when VM is created and passed via host.docker.internal in the generated hosts file to every distribution. 
+
 
 ## Next steps
 
@@ -193,20 +147,6 @@ If you'd like to configure a highly-available setup, there are community-contrib
 - [Helm Chart by @LeoQuote](https://github.com/douban/charts/tree/master/charts/dify)
 - [Helm Chart by @BorisPolonsky](https://github.com/BorisPolonsky/dify-helm)
 - [YAML file by @Winson-030](https://github.com/Winson-030/dify-kubernetes)
-
-#### Using Terraform for Deployment
-
-##### Azure Global
-Deploy Dify to Azure with a single click using [terraform](https://www.terraform.io/).
-- [Azure Terraform by @nikawang](https://github.com/nikawang/dify-azure-terraform)
-
-## Contributing
-
-For those who'd like to contribute code, see our [Contribution Guide](https://github.com/langgenius/dify/blob/main/CONTRIBUTING.md). 
-At the same time, please consider supporting Dify by sharing it on social media and at events and conferences.
-
-
-> We are looking for contributors to help with translating Dify to languages other than Mandarin or English. If you are interested in helping, please see the [i18n README](https://github.com/langgenius/dify/blob/main/web/i18n/README.md) for more information, and leave us a comment in the `global-users` channel of our [Discord Community Server](https://discord.gg/8Tpq4AcN9c).
 
 **Contributors**
 
