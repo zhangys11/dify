@@ -1,0 +1,7 @@
+如有需要，修改配置文件 /docker/.env
+
+cd /docker
+docker compose up -d
+
+访问 http://localhost
+设置的默认用户名、邮箱、密码： dify oo@zju.edu.cn  dify1234
