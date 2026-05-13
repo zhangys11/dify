@@ -1,25 +1,26 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { MermaidConfig } from 'mermaid'
+import { cn } from '@langgenius/dify-ui/cn'
 import mermaid from 'mermaid'
+import * as React from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
-import { MoonIcon, SunIcon } from '@heroicons/react/24/solid'
+import LoadingAnim from '@/app/components/base/chat/chat/loading-anim'
+import ImagePreview from '@/app/components/base/image-uploader/image-preview'
+import { Theme } from '@/types/app'
 import {
   cleanUpSvgCode,
   isMermaidCodeComplete,
   prepareMermaidCode,
   processSvgForTheme,
+  sanitizeMermaidCode,
   svgToBase64,
   waitForDOMElement,
 } from './utils'
-import LoadingAnim from '@/app/components/base/chat/chat/loading-anim'
-import cn from '@/utils/classnames'
-import ImagePreview from '@/app/components/base/image-uploader/image-preview'
-import { Theme } from '@/types/app'
 
 // Global flags and cache for mermaid
 let isMermaidInitialized = false
 const diagramCache = new Map<string, string>()
-let mermaidAPI: any = null
+let mermaidAPI: typeof mermaid.mermaidAPI | null = null
 
 if (typeof window !== 'undefined')
   mermaidAPI = mermaid.mermaidAPI
@@ -68,14 +69,13 @@ const THEMES = {
 const initMermaid = () => {
   if (typeof window !== 'undefined' && !isMermaidInitialized) {
     try {
-      mermaid.initialize({
+      const config: MermaidConfig = {
         startOnLoad: false,
         fontFamily: 'sans-serif',
-        securityLevel: 'loose',
+        securityLevel: 'strict',
         flowchart: {
           htmlLabels: true,
           useMaxWidth: true,
-          diagramPadding: 10,
           curve: 'basis',
           nodeSpacing: 50,
           rankSpacing: 70,
@@ -91,8 +91,13 @@ const initMermaid = () => {
           numberSectionStyles: 4,
           axisFormat: '%Y-%m-%d',
         },
+        mindmap: {
+          useMaxWidth: true,
+          padding: 10,
+        },
         maxTextSize: 50000,
-      })
+      }
+      mermaid.initialize(config)
       isMermaidInitialized = true
     }
     catch (error) {
@@ -103,28 +108,24 @@ const initMermaid = () => {
   return isMermaidInitialized
 }
 
-const Flowchart = React.forwardRef((props: {
+type FlowchartProps = {
   PrimitiveCode: string
   theme?: 'light' | 'dark'
-}, ref) => {
+  ref?: React.Ref<HTMLDivElement>
+}
+
+const Flowchart = (props: FlowchartProps) => {
   const { t } = useTranslation()
-  const [svgCode, setSvgCode] = useState<string | null>(null)
+  const [svgString, setSvgString] = useState<string | null>(null)
   const [look, setLook] = useState<'classic' | 'handDrawn'>('classic')
   const [isInitialized, setIsInitialized] = useState(false)
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(props.theme || 'light')
   const containerRef = useRef<HTMLDivElement>(null)
-  const chartId = useRef(`mermaid-chart-${Math.random().toString(36).substr(2, 9)}`).current
+  const chartId = useRef(`mermaid-chart-${Math.random().toString(36).slice(2, 11)}`).current
   const [isLoading, setIsLoading] = useState(true)
-  const renderTimeoutRef = useRef<NodeJS.Timeout>()
+  const renderTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const [errMsg, setErrMsg] = useState('')
   const [imagePreviewUrl, setImagePreviewUrl] = useState('')
-  const [isCodeComplete, setIsCodeComplete] = useState(false)
-  const codeCompletionCheckRef = useRef<NodeJS.Timeout>()
-
-  // Create cache key from code, style and theme
-  const cacheKey = useMemo(() => {
-    return `${props.PrimitiveCode}-${look}-${currentTheme}`
-  }, [props.PrimitiveCode, look, currentTheme])
 
   /**
    * Renders Mermaid chart
@@ -132,6 +133,7 @@ const Flowchart = React.forwardRef((props: {
   const renderMermaidChart = async (code: string, style: 'classic' | 'handDrawn') => {
     if (style === 'handDrawn') {
       // Special handling for hand-drawn style
+      /* v8 ignore next */
       if (containerRef.current)
         containerRef.current.innerHTML = `<div id="${chartId}"></div>`
       await new Promise(resolve => setTimeout(resolve, 30))
@@ -149,6 +151,7 @@ const Flowchart = React.forwardRef((props: {
     else {
       // Standard rendering for classic style - using the extracted waitForDOMElement function
       const renderWithRetry = async () => {
+        /* v8 ignore next */
         if (containerRef.current)
           containerRef.current.innerHTML = `<div id="${chartId}"></div>`
         await new Promise(resolve => setTimeout(resolve, 30))
@@ -164,50 +167,18 @@ const Flowchart = React.forwardRef((props: {
    */
   const handleRenderError = (error: any) => {
     console.error('Mermaid rendering error:', error)
-    const errorMsg = (error as Error).message
 
-    if (errorMsg.includes('getAttribute')) {
-      diagramCache.clear()
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'loose',
-      })
+    // On any render error, assume the mermaid state is corrupted and force a re-initialization.
+    try {
+      diagramCache.clear() // Clear cache to prevent using potentially corrupted SVGs
+      isMermaidInitialized = false // <-- THE FIX: Force re-initialization
+      initMermaid() // Re-initialize with the default safe configuration
     }
-    else {
-      setErrMsg(`Rendering chart failed, please refresh and try again ${look === 'handDrawn' ? 'Or try using classic mode' : ''}`)
+    catch (reinitError) {
+      console.error('Failed to re-initialize Mermaid after error:', reinitError)
     }
 
-    if (look === 'handDrawn') {
-      try {
-        // Clear possible cache issues
-        diagramCache.delete(`${props.PrimitiveCode}-handDrawn-${currentTheme}`)
-
-        // Reset mermaid configuration
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: 'loose',
-          theme: 'default',
-          maxTextSize: 50000,
-        })
-
-        // Try rendering with standard mode
-        setLook('classic')
-        setErrMsg('Hand-drawn mode is not supported for this diagram. Switched to classic mode.')
-
-        // Delay error clearing
-        setTimeout(() => {
-          if (containerRef.current) {
-            // Try rendering again with standard mode, but can't call renderFlowchart directly due to circular dependency
-            // Instead set state to trigger re-render
-            setIsCodeComplete(true) // This will trigger useEffect re-render
-          }
-        }, 500)
-      }
-      catch (e) {
-        console.error('Reset after handDrawn error failed:', e)
-      }
-    }
-
+    setErrMsg(`Rendering failed: ${(error as Error).message || 'Unknown error. Please check the console.'}`)
     setIsLoading(false)
   }
 
@@ -218,70 +189,34 @@ const Flowchart = React.forwardRef((props: {
       setIsInitialized(true)
   }, [])
 
-  // Update theme when prop changes
+  // Update theme when prop changes, but allow internal override.
+  const prevThemeRef = useRef<string | undefined>(undefined)
   useEffect(() => {
-    if (props.theme)
+    // Only react if the theme prop from the outside has actually changed.
+    if (props.theme && props.theme !== prevThemeRef.current) {
+      // When the global theme prop changes, it should act as the source of truth,
+      // overriding any local theme selection.
+      diagramCache.clear()
+      setSvgString(null)
       setCurrentTheme(props.theme)
+      // Reset look to classic for a consistent state after a global change.
+      setLook('classic')
+    }
+    // Update the ref to the current prop value for the next render.
+    prevThemeRef.current = props.theme
   }, [props.theme])
 
-  // Validate mermaid code and check for completeness
-  useEffect(() => {
-    if (codeCompletionCheckRef.current)
-      clearTimeout(codeCompletionCheckRef.current)
-
-    // Reset code complete status when code changes
-    setIsCodeComplete(false)
-
-    // If no code or code is extremely short, don't proceed
-    if (!props.PrimitiveCode || props.PrimitiveCode.length < 10)
-      return
-
-    // Check if code already in cache - if so we know it's valid
-    if (diagramCache.has(cacheKey)) {
-      setIsCodeComplete(true)
-      return
-    }
-
-    // Initial check using the extracted isMermaidCodeComplete function
-    const isComplete = isMermaidCodeComplete(props.PrimitiveCode)
-    if (isComplete) {
-      setIsCodeComplete(true)
-      return
-    }
-
-    // Set a delay to check again in case code is still being generated
-    codeCompletionCheckRef.current = setTimeout(() => {
-      setIsCodeComplete(isMermaidCodeComplete(props.PrimitiveCode))
-    }, 300)
-
-    return () => {
-      if (codeCompletionCheckRef.current)
-        clearTimeout(codeCompletionCheckRef.current)
-    }
-  }, [props.PrimitiveCode, cacheKey])
-
-  /**
-   * Renders flowchart based on provided code
-   */
   const renderFlowchart = useCallback(async (primitiveCode: string) => {
+    /* v8 ignore next */
     if (!isInitialized || !containerRef.current) {
+      /* v8 ignore next */
       setIsLoading(false)
+      /* v8 ignore next */
       setErrMsg(!isInitialized ? 'Mermaid initialization failed' : 'Container element not found')
       return
     }
 
-    // Don't render if code is not complete yet
-    if (!isCodeComplete) {
-      setIsLoading(true)
-      return
-    }
-
-    // Return cached result if available
-    if (diagramCache.has(cacheKey)) {
-      setSvgCode(diagramCache.get(cacheKey) || null)
-      setIsLoading(false)
-      return
-    }
+    const cacheKey = `${primitiveCode}-${look}-${currentTheme}`
 
     setIsLoading(true)
     setErrMsg('')
@@ -289,18 +224,47 @@ const Flowchart = React.forwardRef((props: {
     try {
       let finalCode: string
 
-      // Check if it's a gantt chart
-      const isGanttChart = primitiveCode.trim().startsWith('gantt')
+      const trimmedCode = primitiveCode.trim()
+      const isGantt = trimmedCode.startsWith('gantt')
+      const isMindMap = trimmedCode.startsWith('mindmap')
+      const isSequence = trimmedCode.startsWith('sequenceDiagram')
 
-      if (isGanttChart) {
-        // For gantt charts, ensure each task is on its own line
-        // and preserve exact whitespace/format
-        finalCode = primitiveCode.trim()
+      if (isGantt || isMindMap || isSequence) {
+        if (isGantt) {
+          finalCode = trimmedCode
+            .split('\n')
+            .map((line) => {
+              // Gantt charts have specific syntax needs.
+              const taskMatch = /^\s*([^:]+?)\s*:\s*(.*)/.exec(line)
+              if (!taskMatch)
+                return line // Not a task line, return as is.
+
+              const taskName = taskMatch[1]!.trim()
+              let paramsStr = taskMatch[2]!.trim()
+
+              // Rule 1: Correct multiple "after" dependencies ONLY if they exist.
+              // This is a common mistake, e.g., "..., after task1, after task2, ..."
+              paramsStr = paramsStr.replace(/,\s*after\s+/g, ' ')
+
+              // Rule 2: Normalize spacing between parameters for consistency.
+              const finalParams = paramsStr.replace(/\s*,\s*/g, ', ').trim()
+              return `${taskName} :${finalParams}`
+            })
+            .join('\n')
+        }
+        else {
+          // For mindmap and sequence charts, which are sensitive to syntax,
+          // pass the code through directly.
+          finalCode = trimmedCode
+        }
       }
       else {
         // Step 1: Clean and prepare Mermaid code using the extracted prepareMermaidCode function
+        // This function handles flowcharts appropriately.
         finalCode = prepareMermaidCode(primitiveCode, look)
       }
+
+      finalCode = sanitizeMermaidCode(finalCode)
 
       // Step 2: Render chart
       const svgGraph = await renderMermaidChart(finalCode, look)
@@ -313,14 +277,11 @@ const Flowchart = React.forwardRef((props: {
         THEMES,
       )
 
-      // Step 4: Clean SVG code and convert to base64 using the extracted functions
+      // Step 4: Clean up SVG code
       const cleanedSvg = cleanUpSvgCode(processedSvg)
-      const base64Svg = await svgToBase64(cleanedSvg)
 
-      if (base64Svg && typeof base64Svg === 'string') {
-        diagramCache.set(cacheKey, base64Svg)
-        setSvgCode(base64Svg)
-      }
+      diagramCache.set(cacheKey, cleanedSvg as string)
+      setSvgString(cleanedSvg as string)
 
       setIsLoading(false)
     }
@@ -328,17 +289,14 @@ const Flowchart = React.forwardRef((props: {
       // Error handling
       handleRenderError(error)
     }
-  }, [chartId, isInitialized, cacheKey, isCodeComplete, look, currentTheme, t])
+  }, [chartId, isInitialized, look, currentTheme, t])
 
-  /**
-   * Configure mermaid based on selected style and theme
-   */
-  const configureMermaid = useCallback(() => {
+  const configureMermaid = useCallback((primitiveCode: string) => {
     if (typeof window !== 'undefined' && isInitialized) {
       const themeVars = THEMES[currentTheme]
-      const config: any = {
+      const config: MermaidConfig = {
         startOnLoad: false,
-        securityLevel: 'loose',
+        securityLevel: 'strict',
         fontFamily: 'sans-serif',
         maxTextSize: 50000,
         gantt: {
@@ -352,21 +310,42 @@ const Flowchart = React.forwardRef((props: {
           numberSectionStyles: 4,
           axisFormat: '%Y-%m-%d',
         },
+        mindmap: {
+          useMaxWidth: true,
+          padding: 10,
+        },
       }
+
+      const isFlowchart = primitiveCode.trim().startsWith('graph') || primitiveCode.trim().startsWith('flowchart')
 
       if (look === 'classic') {
         config.theme = currentTheme === 'dark' ? 'dark' : 'neutral'
-        config.flowchart = {
-          htmlLabels: true,
-          useMaxWidth: true,
-          diagramPadding: 12,
-          nodeSpacing: 60,
-          rankSpacing: 80,
-          curve: 'linear',
-          ranker: 'tight-tree',
+
+        if (isFlowchart) {
+          type FlowchartConfigWithRanker = NonNullable<MermaidConfig['flowchart']> & { ranker?: string }
+          const flowchartConfig: FlowchartConfigWithRanker = {
+            htmlLabels: true,
+            useMaxWidth: true,
+            nodeSpacing: 60,
+            rankSpacing: 80,
+            curve: 'linear',
+            ranker: 'tight-tree',
+          }
+          config.flowchart = flowchartConfig as unknown as MermaidConfig['flowchart']
+        }
+
+        if (currentTheme === 'dark') {
+          config.themeVariables = {
+            background: themeVars.background,
+            primaryColor: themeVars.primaryColor,
+            primaryBorderColor: themeVars.primaryBorderColor,
+            primaryTextColor: themeVars.primaryTextColor,
+            secondaryColor: themeVars.secondaryColor,
+            tertiaryColor: themeVars.tertiaryColor,
+          }
         }
       }
-      else {
+      else { // look === 'handDrawn'
         config.theme = 'default'
         config.themeCSS = `
           .node rect { fill-opacity: 0.85; }
@@ -378,27 +357,17 @@ const Flowchart = React.forwardRef((props: {
         config.themeVariables = {
           fontSize: '14px',
           fontFamily: 'sans-serif',
+          primaryBorderColor: currentTheme === 'dark' ? THEMES.dark.connectionColor : THEMES.light.connectionColor,
         }
-        config.flowchart = {
-          htmlLabels: true,
-          useMaxWidth: true,
-          diagramPadding: 10,
-          nodeSpacing: 40,
-          rankSpacing: 60,
-          curve: 'basis',
-        }
-        config.themeVariables.primaryBorderColor = currentTheme === 'dark' ? THEMES.dark.connectionColor : THEMES.light.connectionColor
-      }
 
-      if (currentTheme === 'dark' && !config.themeVariables) {
-        config.themeVariables = {
-          background: themeVars.background,
-          primaryColor: themeVars.primaryColor,
-          primaryBorderColor: themeVars.primaryBorderColor,
-          primaryTextColor: themeVars.primaryTextColor,
-          secondaryColor: themeVars.secondaryColor,
-          tertiaryColor: themeVars.tertiaryColor,
-          fontFamily: 'sans-serif',
+        if (isFlowchart) {
+          config.flowchart = {
+            htmlLabels: true,
+            useMaxWidth: true,
+            nodeSpacing: 40,
+            rankSpacing: 60,
+            curve: 'basis',
+          }
         }
       }
 
@@ -414,60 +383,71 @@ const Flowchart = React.forwardRef((props: {
     return false
   }, [currentTheme, isInitialized, look])
 
-  // Effect for theme and style configuration
+  // This is the main rendering effect.
+  // It triggers whenever the code, theme, or style changes.
   useEffect(() => {
-    if (diagramCache.has(cacheKey)) {
-      setSvgCode(diagramCache.get(cacheKey) || null)
+    if (!isInitialized)
+      return
+
+    // Don't render if code is too short
+    if (!props.PrimitiveCode || props.PrimitiveCode.length < 10) {
       setIsLoading(false)
+      setSvgString(null)
       return
     }
 
-    if (configureMermaid() && containerRef.current && isCodeComplete)
-      renderFlowchart(props.PrimitiveCode)
-  }, [look, props.PrimitiveCode, renderFlowchart, isInitialized, cacheKey, currentTheme, isCodeComplete, configureMermaid])
-
-  // Effect for rendering with debounce
-  useEffect(() => {
-    if (diagramCache.has(cacheKey)) {
-      setSvgCode(diagramCache.get(cacheKey) || null)
-      setIsLoading(false)
-      return
-    }
-
+    // Use a timeout to handle streaming code and debounce rendering
     if (renderTimeoutRef.current)
       clearTimeout(renderTimeoutRef.current)
 
-    if (isCodeComplete) {
-      renderTimeoutRef.current = setTimeout(() => {
-        if (isInitialized)
-          renderFlowchart(props.PrimitiveCode)
-      }, 300)
-    }
-    else {
-      setIsLoading(true)
-    }
+    setIsLoading(true)
+
+    renderTimeoutRef.current = setTimeout(() => {
+      // Final validation before rendering
+      if (!isMermaidCodeComplete(props.PrimitiveCode)) {
+        setIsLoading(false)
+        setErrMsg('Diagram code is not complete or invalid.')
+        return
+      }
+
+      const cacheKey = `${props.PrimitiveCode}-${look}-${currentTheme}`
+      if (diagramCache.has(cacheKey)) {
+        setErrMsg('')
+        setSvgString(diagramCache.get(cacheKey)!)
+        setIsLoading(false)
+        return
+      }
+
+      if (configureMermaid(props.PrimitiveCode))
+        renderFlowchart(props.PrimitiveCode)
+    }, 300) // 300ms debounce
 
     return () => {
-      if (renderTimeoutRef.current)
-        clearTimeout(renderTimeoutRef.current)
+      clearTimeout(renderTimeoutRef.current)
     }
-  }, [props.PrimitiveCode, renderFlowchart, isInitialized, cacheKey, isCodeComplete])
+  }, [props.PrimitiveCode, look, currentTheme, isInitialized, configureMermaid, renderFlowchart])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (containerRef.current)
-        containerRef.current.innerHTML = ''
       if (renderTimeoutRef.current)
         clearTimeout(renderTimeoutRef.current)
-      if (codeCompletionCheckRef.current)
-        clearTimeout(codeCompletionCheckRef.current)
     }
   }, [])
 
+  const handlePreviewClick = async () => {
+    if (!svgString)
+      return
+    const base64 = await svgToBase64(svgString)
+    setImagePreviewUrl(base64)
+  }
+
   const toggleTheme = () => {
-    setCurrentTheme(prevTheme => prevTheme === 'light' ? Theme.dark : Theme.light)
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light'
+    // Ensure a full, clean re-render cycle, consistent with global theme change.
     diagramCache.clear()
+    setSvgString(null)
+    setCurrentTheme(newTheme)
   }
 
   // Style classes for theme-dependent elements
@@ -492,40 +472,56 @@ const Flowchart = React.forwardRef((props: {
       'text-gray-700': currentTheme === Theme.light,
       'text-gray-300': currentTheme === Theme.dark,
     }),
-    themeToggle: cn('flex h-10 w-10 items-center justify-center rounded-full shadow-md backdrop-blur-sm transition-all duration-300', {
-      'bg-white/80 hover:bg-white hover:shadow-lg text-gray-700 border border-gray-200': currentTheme === Theme.light,
-      'bg-slate-800/80 hover:bg-slate-700 hover:shadow-lg text-yellow-300 border border-slate-600': currentTheme === Theme.dark,
+    themeToggle: cn('flex h-10 w-10 items-center justify-center rounded-full shadow-md backdrop-blur-xs transition-all duration-300', {
+      'border border-gray-200 bg-white/80 text-gray-700 hover:bg-white hover:shadow-lg': currentTheme === Theme.light,
+      'border border-slate-600 bg-slate-800/80 text-yellow-300 hover:bg-slate-700 hover:shadow-lg': currentTheme === Theme.dark,
     }),
   }
 
   // Style classes for look options
   const getLookButtonClass = (lookType: 'classic' | 'handDrawn') => {
     return cn(
-      'system-sm-medium mb-4 flex h-8 w-[calc((100%-8px)/2)] cursor-pointer items-center justify-center rounded-lg border border-components-option-card-option-border bg-components-option-card-option-bg text-text-secondary',
+      'mb-4 flex h-8 w-[calc((100%-8px)/2)] cursor-pointer items-center justify-center rounded-lg border border-components-option-card-option-border bg-components-option-card-option-bg system-sm-medium text-text-secondary',
       look === lookType && 'border-[1.5px] border-components-option-card-option-selected-border bg-components-option-card-option-selected-bg text-text-primary',
       currentTheme === Theme.dark && 'border-slate-600 bg-slate-800 text-slate-300',
       look === lookType && currentTheme === Theme.dark && 'border-blue-500 bg-slate-700 text-white',
     )
   }
+  const themeToggleTitleByTheme = {
+    light: t('theme.switchDark', { ns: 'app' }),
+    dark: t('theme.switchLight', { ns: 'app' }),
+  } as const
 
   return (
-    <div ref={ref as React.RefObject<HTMLDivElement>} className={themeClasses.container}>
+    <div ref={props.ref as React.RefObject<HTMLDivElement>} className={themeClasses.container}>
       <div className={themeClasses.segmented}>
         <div className="msh-segmented-group">
           <label className="msh-segmented-item m-2 flex w-[200px] items-center space-x-1">
             <div
-              key='classic'
+              key="classic"
               className={getLookButtonClass('classic')}
-              onClick={() => setLook('classic')}
+              onClick={() => {
+                if (look !== 'classic') {
+                  diagramCache.clear()
+                  setSvgString(null)
+                  setLook('classic')
+                }
+              }}
             >
-              <div className="msh-segmented-item-label">{t('app.mermaid.classic')}</div>
+              <div className="msh-segmented-item-label">{t('mermaid.classic', { ns: 'app' })}</div>
             </div>
             <div
-              key='handDrawn'
+              key="handDrawn"
               className={getLookButtonClass('handDrawn')}
-              onClick={() => setLook('handDrawn')}
+              onClick={() => {
+                if (look !== 'handDrawn') {
+                  diagramCache.clear()
+                  setSvgString(null)
+                  setLook('handDrawn')
+                }
+              }}
             >
-              <div className="msh-segmented-item-label">{t('app.mermaid.handDrawn')}</div>
+              <div className="msh-segmented-item-label">{t('mermaid.handDrawn', { ns: 'app' })}</div>
             </div>
           </label>
         </div>
@@ -533,38 +529,35 @@ const Flowchart = React.forwardRef((props: {
 
       <div ref={containerRef} style={{ position: 'absolute', visibility: 'hidden', height: 0, overflow: 'hidden' }} />
 
-      {isLoading && !svgCode && (
-        <div className='px-[26px] py-4'>
-          <LoadingAnim type='text'/>
-          {!isCodeComplete && (
-            <div className="mt-2 text-sm text-gray-500">
-              {t('common.wait_for_completion', 'Waiting for diagram code to complete...')}
-            </div>
-          )}
+      {isLoading && !svgString && (
+        <div className="px-[26px] py-4">
+          <LoadingAnim type="text" />
+          <div className="mt-2 text-sm text-gray-500">
+            {t('wait_for_completion', { ns: 'common', defaultValue: 'Waiting for diagram code to complete...' })}
+          </div>
         </div>
       )}
 
-      {svgCode && (
-        <div className={themeClasses.mermaidDiv} style={{ objectFit: 'cover' }} onClick={() => setImagePreviewUrl(svgCode)}>
-          <div className="absolute bottom-2 left-2 z-[100]">
+      {svgString && (
+        <div className={themeClasses.mermaidDiv} style={{ objectFit: 'cover' }} onClick={handlePreviewClick}>
+          <div className="absolute bottom-2 left-2 z-100">
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 toggleTheme()
               }}
               className={themeClasses.themeToggle}
-              title={(currentTheme === Theme.light ? t('app.theme.switchDark') : t('app.theme.switchLight')) || ''}
+              title={themeToggleTitleByTheme[currentTheme] || ''}
               style={{ transform: 'translate3d(0, 0, 0)' }}
             >
-              {currentTheme === Theme.light ? <MoonIcon className="h-5 w-5" /> : <SunIcon className="h-5 w-5" />}
+              {currentTheme === Theme.light ? <span className="i-heroicons-moon-solid h-5 w-5" /> : <span className="i-heroicons-sun-solid h-5 w-5" />}
             </button>
           </div>
 
-          <img
-            src={svgCode}
-            alt="mermaid_chart"
+          <div
             style={{ maxWidth: '100%' }}
-            onError={() => { setErrMsg('Chart rendering failed, please refresh and retry') }}
+            dangerouslySetInnerHTML={{ __html: svgString }}
           />
         </div>
       )}
@@ -572,18 +565,18 @@ const Flowchart = React.forwardRef((props: {
       {errMsg && (
         <div className={themeClasses.errorMessage}>
           <div className="flex items-center">
-            <ExclamationTriangleIcon className={themeClasses.errorIcon}/>
+            <span className={`i-heroicons-exclamation-triangle ${themeClasses.errorIcon}`} />
             <span className="ml-2">{errMsg}</span>
           </div>
         </div>
       )}
 
       {imagePreviewUrl && (
-        <ImagePreview title='mermaid_chart' url={imagePreviewUrl} onCancel={() => setImagePreviewUrl('')} />
+        <ImagePreview title="mermaid_chart" url={imagePreviewUrl} onCancel={() => setImagePreviewUrl('')} />
       )}
     </div>
   )
-})
+}
 
 Flowchart.displayName = 'Flowchart'
 

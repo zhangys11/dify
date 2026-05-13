@@ -1,25 +1,35 @@
+import { cn } from '@langgenius/dify-ui/cn'
 import { memo } from 'react'
 import { getKeyboardKeyNameBySystem } from './utils'
-import cn from '@/utils/classnames'
 
 type ShortcutsNameProps = {
   keys: string[]
   className?: string
+  textColor?: 'default' | 'secondary'
+  bgColor?: 'gray' | 'white'
 }
 const ShortcutsName = ({
   keys,
   className,
+  textColor = 'default',
+  bgColor = 'gray',
 }: ShortcutsNameProps) => {
   return (
     <div className={cn(
       'flex items-center gap-0.5',
       className,
-    )}>
+    )}
+    >
       {
         keys.map(key => (
           <div
             key={key}
-            className='system-kbd flex h-4 w-4 items-center justify-center rounded-[4px] bg-components-kbd-bg-gray capitalize'
+            className={cn(
+              'flex h-4 min-w-4 items-center justify-center rounded-sm px-1 system-kbd capitalize',
+              bgColor === 'gray' && 'bg-components-kbd-bg-gray',
+              bgColor === 'white' && 'bg-components-kbd-bg-white text-text-primary-on-surface',
+              textColor === 'secondary' && 'text-text-tertiary',
+            )}
           >
             {getKeyboardKeyNameBySystem(key)}
           </div>

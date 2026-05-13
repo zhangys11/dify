@@ -9,6 +9,11 @@ from .account import (
     TenantStatus,
 )
 from .api_based_extension import APIBasedExtension, APIBasedExtensionPoint
+from .comment import (
+    WorkflowComment,
+    WorkflowCommentMention,
+    WorkflowCommentReply,
+)
 from .dataset import (
     AppDatasetJoin,
     Dataset,
@@ -26,20 +31,30 @@ from .dataset import (
     TidbAuthBinding,
     Whitelist,
 )
-from .engine import db
-from .enums import CreatorUserRole, UserFrom, WorkflowRunTriggeredFrom
+from .enums import (
+    AppTriggerStatus,
+    AppTriggerType,
+    CreatorUserRole,
+    WorkflowRunTriggeredFrom,
+    WorkflowTriggerStatus,
+)
+from .execution_extra_content import ExecutionExtraContent, HumanInputContent
+from .human_input import HumanInputForm
 from .model import (
+    AccountTrialAppRecord,
     ApiRequest,
     ApiToken,
     App,
     AppAnnotationHitHistory,
     AppAnnotationSetting,
+    AppMCPServer,
     AppMode,
     AppModelConfig,
     Conversation,
     DatasetRetrieverResource,
     DifySetup,
     EndUser,
+    ExporleBanner,
     IconType,
     InstalledApp,
     Message,
@@ -53,9 +68,12 @@ from .model import (
     Site,
     Tag,
     TagBinding,
+    TenantCreditPool,
     TraceAppConfig,
+    TrialApp,
     UploadFile,
 )
+from .oauth import DatasourceOauthParamConfig, DatasourceProvider
 from .provider import (
     LoadBalancingModelConfig,
     Provider,
@@ -78,17 +96,25 @@ from .tools import (
     ToolModelInvoke,
     WorkflowToolProvider,
 )
+from .trigger import (
+    AppTrigger,
+    TriggerOAuthSystemClient,
+    TriggerOAuthTenantClient,
+    TriggerSubscription,
+    WorkflowSchedulePlan,
+)
 from .web import PinnedConversation, SavedMessage
 from .workflow import (
     ConversationVariable,
     Workflow,
     WorkflowAppLog,
     WorkflowAppLogCreatedFrom,
-    WorkflowNodeExecution,
-    WorkflowNodeExecutionStatus,
+    WorkflowArchiveLog,
+    WorkflowNodeExecutionModel,
+    WorkflowNodeExecutionOffload,
     WorkflowNodeExecutionTriggeredFrom,
+    WorkflowPause,
     WorkflowRun,
-    WorkflowRunStatus,
     WorkflowType,
 )
 
@@ -98,16 +124,21 @@ __all__ = [
     "Account",
     "AccountIntegrate",
     "AccountStatus",
+    "AccountTrialAppRecord",
     "ApiRequest",
     "ApiToken",
-    "ApiToolProvider",  # Added
+    "ApiToolProvider",
     "App",
     "AppAnnotationHitHistory",
     "AppAnnotationSetting",
     "AppDatasetJoin",
+    "AppMCPServer",
     "AppMode",
     "AppModelConfig",
-    "BuiltinToolProvider",  # Added
+    "AppTrigger",
+    "AppTriggerStatus",
+    "AppTriggerType",
+    "BuiltinToolProvider",
     "CeleryTask",
     "CeleryTaskSet",
     "Conversation",
@@ -123,13 +154,19 @@ __all__ = [
     "DatasetProcessRule",
     "DatasetQuery",
     "DatasetRetrieverResource",
+    "DatasourceOauthParamConfig",
+    "DatasourceProvider",
     "DifySetup",
     "Document",
     "DocumentSegment",
     "Embedding",
     "EndUser",
+    "ExecutionExtraContent",
+    "ExporleBanner",
     "ExternalKnowledgeApis",
     "ExternalKnowledgeBindings",
+    "HumanInputContent",
+    "HumanInputForm",
     "IconType",
     "InstalledApp",
     "InvitationCode",
@@ -156,6 +193,7 @@ __all__ = [
     "Tenant",
     "TenantAccountJoin",
     "TenantAccountRole",
+    "TenantCreditPool",
     "TenantDefaultModel",
     "TenantPreferredModelProvider",
     "TenantStatus",
@@ -165,19 +203,27 @@ __all__ = [
     "ToolLabelBinding",
     "ToolModelInvoke",
     "TraceAppConfig",
+    "TrialApp",
+    "TriggerOAuthSystemClient",
+    "TriggerOAuthTenantClient",
+    "TriggerSubscription",
     "UploadFile",
-    "UserFrom",
     "Whitelist",
     "Workflow",
     "WorkflowAppLog",
     "WorkflowAppLogCreatedFrom",
-    "WorkflowNodeExecution",
-    "WorkflowNodeExecutionStatus",
+    "WorkflowArchiveLog",
+    "WorkflowComment",
+    "WorkflowCommentMention",
+    "WorkflowCommentReply",
+    "WorkflowNodeExecutionModel",
+    "WorkflowNodeExecutionOffload",
     "WorkflowNodeExecutionTriggeredFrom",
+    "WorkflowPause",
     "WorkflowRun",
-    "WorkflowRunStatus",
     "WorkflowRunTriggeredFrom",
+    "WorkflowSchedulePlan",
     "WorkflowToolProvider",
+    "WorkflowTriggerStatus",
     "WorkflowType",
-    "db",
 ]
